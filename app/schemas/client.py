@@ -2,7 +2,6 @@ from pydantic import BaseModel, EmailStr
 
 
 class ClientPydant(BaseModel):
-    id: int
     email: EmailStr
     password: str
 

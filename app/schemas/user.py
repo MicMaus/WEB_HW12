@@ -1,4 +1,5 @@
 from pydantic import BaseModel, PastDate, EmailStr, constr
+from typing import Optional
 
 
 class UserPydant(BaseModel):
@@ -19,10 +20,9 @@ class UserPydant(BaseModel):
 
 
 class UserUpdatePydant(BaseModel):
-    id: int | None
     name: str | None
     surname: str | None
-    email: EmailStr | None
-    phone: constr(pattern=r"^\+?[1-9]\d{8,14}$") | None
-    birthday: PastDate | None
-    additional_description: str | None
+    email: Optional[EmailStr] = None
+    phone: Optional[constr(pattern=r"^\+?[1-9]\d{8,14}$")] = None
+    birthday: Optional[PastDate] = None
+    additional_description: Optional[str] = None

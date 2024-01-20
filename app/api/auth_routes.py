@@ -8,7 +8,13 @@ from fastapi.security import (
     HTTPBearer,
 )
 
-from services.auth import auth_service
+from services.auth import (
+    verify_password,
+    create_access_token,
+    create_refresh_token,
+    get_password_hash,
+    decode_refresh_token,
+)
 
 from sqlalchemy.orm import Session
 from dependencies.db import get_db
@@ -28,7 +34,7 @@ def signup(body: ClientPydant, db: Session = Depends(get_db)):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT, detail="Account already exists"
         )
-    body.password = auth_service.get_password_hash(body.password)
+    body.password = get_password_hash(body.password)
     new_user = repository_auth.create_user(body, db)
     return ClientResponsePydant(user=new_user, detail="User successfully created")
 
@@ -40,13 +46,13 @@ def login(body: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email"
         )
-    if not auth_service.verify_password(body.password, user.password):
+    if not verify_password(body.password, user.password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid password"
         )
     # Generate JWT
-    access_token = auth_service.create_access_token(data={"sub": user.email})
-    refresh_token = auth_service.create_refresh_token(data={"sub": user.email})
+    access_token = create_access_token(data={"sub": user.email})
+    refresh_token = create_refresh_token(data={"sub": user.email})
     repository_auth.update_token(user, refresh_token, db)
     return {
         "access_token": access_token,
@@ -61,7 +67,7 @@ def refresh_token(
     db: Session = Depends(get_db),
 ):
     token = credentials.credentials
-    email = auth_service.decode_refresh_token(token)
+    email = decode_refresh_token(token)
     user = repository_auth.get_user_by_email(email, db)
     if user.refresh_token != token:
         repository_auth.update_token(user, None, db)
@@ -69,8 +75,8 @@ def refresh_token(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
         )
 
-    access_token = auth_service.create_access_token(data={"sub": email})
-    refresh_token = auth_service.create_refresh_token(data={"sub": email})
+    access_token = create_access_token(data={"sub": email})
+    refresh_token = create_refresh_token(data={"sub": email})
     repository_auth.update_token(user, refresh_token, db)
     return {
         "access_token": access_token,
