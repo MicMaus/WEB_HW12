@@ -1,7 +1,9 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from schemas.user import UserPydant, UserUpdatePydant
 from dependencies.db import get_db, SessionLocal
-from services.users import UserService
+from services.users import UserService, UserServiceRestricted
+from services.auth import AuthService
+from models.client import ClientDB
 
 
 router = APIRouter()
@@ -26,23 +28,40 @@ def get_detail(id: int, db: SessionLocal = Depends(get_db)) -> UserPydant:
 
 @router.post("/")
 def create_user(
-    todo_item: UserPydant, db: SessionLocal = Depends(get_db)
+    todo_item: UserPydant,
+    db: SessionLocal = Depends(get_db),
+    current_user: ClientDB = Depends(AuthService.get_connected_client),
 ) -> UserPydant:
-    new_item = UserService(db=db).create_new(todo_item)
+    new_item = UserServiceRestricted(db=db, connected_client=current_user).create_new(
+        todo_item
+    )
     return new_item
 
 
 @router.put("/{id}")
 def update_user(
-    id: int, todo_item: UserUpdatePydant, db: SessionLocal = Depends(get_db)
+    id: int,
+    todo_item: UserUpdatePydant,
+    db: SessionLocal = Depends(get_db),
+    current_user: ClientDB = Depends(AuthService.get_connected_client),
 ) -> UserPydant:
-    updated_user = UserService(db=db).update_existing(id, todo_item)
+    updated_user = UserServiceRestricted(
+        db=db, connected_client=current_user
+    ).update_existing(id, todo_item)
+    if updated_user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Tag not found"
+        )
     return updated_user
 
 
 @router.delete("/{id}")
-def delete_user(id: int, db: SessionLocal = Depends(get_db)):
-    UserService(db=db).delete_by_id(id)
+def delete_user(
+    id: int,
+    db: SessionLocal = Depends(get_db),
+    current_user: ClientDB = Depends(AuthService.get_connected_client),
+):
+    UserServiceRestricted(db=db, connected_client=current_user).delete_by_id(id)
     return f"message: User {id} was deleted"
 
 

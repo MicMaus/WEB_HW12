@@ -19,6 +19,7 @@ class UserPydant(BaseModel):
 
 
 class UserUpdatePydant(BaseModel):
+    id: int | None
     name: str | None
     surname: str | None
     email: EmailStr | None

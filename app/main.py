@@ -8,8 +8,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 from dependencies.db import get_db, engine
 from api.users_routes import router as user_router
-from models import user, client
 from api.auth_routes import router as auth_router
+from models import user, client
 
 
 user.Base.metadata.create_all(bind=engine)
@@ -18,7 +18,7 @@ client.Base.metadata.create_all(bind=engine)
 app = FastAPI()
 
 app.include_router(user_router, prefix="/users")
-app.include_router(auth_router, prefix="/clients")
+app.include_router(auth_router, prefix="/auth")
 
 
 @app.get("/")
